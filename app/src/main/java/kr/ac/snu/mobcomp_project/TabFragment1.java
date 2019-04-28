@@ -112,7 +112,7 @@ public class TabFragment1 extends Fragment
 
         startActivity(callIntent);
         //mTelephonyManager.listen(mPhoneStateListener,PhoneStateListener.LISTEN_NONE);
-
+        //https://stackoverflow.com/questions/599443/how-to-hang-up-outgoing-call-in-android
     }
     @Override
     public void onRequestPermissionsResult(int requestCode,
