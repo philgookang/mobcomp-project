@@ -18,12 +18,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 
 public class TabFragment1 extends Fragment
 {
     private Button button;
     private final int CALL_PHONE_PERMISSIONS = 1;
     private int prev_state;
+    public TextView txtacc, txtgravity;
     public TabFragment1()
     {
 
@@ -40,6 +42,15 @@ public class TabFragment1 extends Fragment
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         ConstraintLayout layout = (ConstraintLayout) inflater.inflate(R.layout.tab_fragment_1, container, false);
         button = layout.findViewById(R.id.button);
+        txtacc = (TextView) layout.findViewById(R.id.acceleration);
+        txtgravity = (TextView) layout.findViewById(R.id.gravity);
+        if(txtacc == null) {
+            System.out.println(0);
+        }
+        if(txtgravity == null) {
+            System.out.println(1);
+        }
+
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View arg0) {
                 checkPermissionandCall(arg0);
