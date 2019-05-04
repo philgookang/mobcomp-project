@@ -1,9 +1,14 @@
 package kr.ac.snu.mobcomp_project;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -20,37 +25,110 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-public class TabFragment1 extends Fragment
+import kr.ac.snu.mobcomp_project.component.AccelerometerMonitorCallback;
+import kr.ac.snu.mobcomp_project.component.AccelerometerMonitorConfig;
+
+public class TabFragment1 extends Fragment implements SensorEventListener
 {
     private Button button;
     private final int CALL_PHONE_PERMISSIONS = 1;
     private int prev_state;
     public TextView txtacc, txtgravity;
+    private SensorManager mSensorManager;
+    private float[] mGravity;
+    private float mAccel;
+    private float mAccelCurrent;
+    private float mAccelLast;
+    private Sensor mAccelerometer;
+    private AccelerometerMonitorCallback mAccelerometerMonitorCallback;
+    private TabFragment1 mfragment;
+    View layout;
     public TabFragment1()
     {
+
+    }
+    private void CreateAccelerometer(){
+        mSensorManager = (SensorManager) this.getActivity().getSystemService(Activity.SENSOR_SERVICE);
+        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mAccel = 0.00f;
+        mAccelCurrent = SensorManager.GRAVITY_EARTH;
+        mAccelLast = SensorManager.GRAVITY_EARTH;
+        mAccelerometerMonitorCallback = new AccelerometerMonitorCallback();
 
     }
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //load components
+        CreateAccelerometer();
 
 
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        float xValue = event.values[0];
+        float yValue = event.values[1];
+        float zValue = event.values[2];
+        Log.d("PPPPP", "x:"+xValue +";y:"+yValue+";z:"+zValue);
+
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
+            mGravity = event.values.clone();
+
+            // Shake detection
+            float x = mGravity[0];
+            float y = mGravity[1];
+            float z = mGravity[2];
+
+            mAccelLast = mAccelCurrent;
+            mAccelCurrent = (float) Math.sqrt(x*x + y*y + z*z);
+
+            float delta = mAccelCurrent - mAccelLast;
+            mAccel = mAccel * 0.9f + delta;
+
+
+            // Make this higher or lower according to how much motion you want to detect
+            if(mAccel > 3){
+                mAccelerometerMonitorCallback.callback(AccelerometerMonitorConfig.MOTION_MOVE);
+            } else {
+                mAccelerometerMonitorCallback.callback(AccelerometerMonitorConfig.MOTION_STOP);
+            }
+        }
+        this.updateValue(mAccel,mGravity);
+    }
+    public void updateValue(float acceleration, float[] gravity){
+        txtacc = (TextView) layout.findViewById(R.id.acceleration);
+        txtgravity = (TextView) layout.findViewById(R.id.gravity);
+        if(txtacc != null) {
+            txtacc.setText(String.format("Acceleration | %.6f", acceleration));
+        }
+        if(txtgravity != null) {
+            txtgravity.setText(String.format("Gravity | %.6f %.6f %.6f", mGravity[0],mGravity[1],mGravity[2]));
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        mSensorManager.unregisterListener(this);
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        ConstraintLayout layout = (ConstraintLayout) inflater.inflate(R.layout.tab_fragment_1, container, false);
+        layout = inflater.inflate(R.layout.tab_fragment_1, container, false);
         button = layout.findViewById(R.id.button);
-        txtacc = (TextView) layout.findViewById(R.id.acceleration);
-        txtgravity = (TextView) layout.findViewById(R.id.gravity);
-        if(txtacc == null) {
-            System.out.println(0);
-        }
-        if(txtgravity == null) {
-            System.out.println(1);
-        }
-
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View arg0) {
                 checkPermissionandCall(arg0);
@@ -88,6 +166,7 @@ public class TabFragment1 extends Fragment
         mTelephonyManager.listen(mPhoneStateListener,PhoneStateListener.LISTEN_CALL_STATE);
         return layout;
     }
+
     private void checkPermissionandCall(View arg0){
         if (ActivityCompat.checkSelfPermission(getContext(),
                 Manifest.permission.CALL_PHONE)
