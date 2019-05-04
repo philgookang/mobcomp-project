@@ -69,7 +69,7 @@ public class TabFragment1 extends Fragment
         mAccelerometerListener.onThreadResume();
         // load inference task
         mHandler = new Handler();
-        mRunnable = new DrowsyDetector(mHandler,mAccelerometerListener);
+        mRunnable = new DrowsyDetector(getActivity(),mHandler,mAccelerometerListener);
         mRunnable.run();
     }
 
@@ -78,6 +78,7 @@ public class TabFragment1 extends Fragment
         super.onPause();
         mAccelerometerListener.onThreadPause();
         // remove inference task
+        ((DrowsyDetector)mRunnable).close();
         mHandler.removeCallbacks(mRunnable);
 
     }
