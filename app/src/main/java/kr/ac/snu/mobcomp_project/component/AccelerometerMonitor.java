@@ -11,20 +11,6 @@ import static android.content.Context.SENSOR_SERVICE;
 
 public class AccelerometerMonitor implements SensorEventListener {
 
-    /* ADD THESE
-     @Override
-    public void onResume() {
-        super.onResume();
-        mAccelerometerMonitor.onResume();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        mAccelerometerMonitor.onPause();
-    }
-     */
-
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
     private Activity mActivity;
