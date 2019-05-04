@@ -11,6 +11,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.constraint.ConstraintLayout;
@@ -25,109 +26,92 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import kr.ac.snu.mobcomp_project.component.AccelerometerMonitorCallback;
-import kr.ac.snu.mobcomp_project.component.AccelerometerMonitorConfig;
+import kr.ac.snu.mobcomp_project.component.AccelerometerListener;
 
-public class TabFragment1 extends Fragment implements SensorEventListener
+public class TabFragment1 extends Fragment
 {
+    //Calling
     private Button button;
     private final int CALL_PHONE_PERMISSIONS = 1;
     private int prev_state;
-    public TextView txtacc, txtgravity;
-    private SensorManager mSensorManager;
-    private float[] mGravity;
-    private float mAccel;
-    private float mAccelCurrent;
-    private float mAccelLast;
-    private Sensor mAccelerometer;
-    private AccelerometerMonitorCallback mAccelerometerMonitorCallback;
-    private TabFragment1 mfragment;
-    View layout;
+
+    //Sensor
+
+    private AccelerometerListener mAccelerometerListener;
+    //View
+    ConstraintLayout layout;
+
+    //Background thread for inference
+    private int mInterval = 1000;
+    private Handler mHandler;
+    Runnable mRunnable = new Runnable() {
+        @Override
+        public void run() {
+            try{
+                if(mAccelerometerListener != null) {
+                    if(mAccelerometerListener.mGravity != null) {
+                        System.out.println(String.format("%6f %6f",
+                                mAccelerometerListener.mAccel,
+                                mAccelerometerListener.mGravity[0]));
+                    }
+                }
+            }finally {
+                mHandler.postDelayed(mRunnable,mInterval);
+            }
+        }
+    };
+
     public TabFragment1()
     {
-
-    }
-    private void CreateAccelerometer(){
-        mSensorManager = (SensorManager) this.getActivity().getSystemService(Activity.SENSOR_SERVICE);
-        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        mAccel = 0.00f;
-        mAccelCurrent = SensorManager.GRAVITY_EARTH;
-        mAccelLast = SensorManager.GRAVITY_EARTH;
-        mAccelerometerMonitorCallback = new AccelerometerMonitorCallback();
 
     }
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //load components
-        CreateAccelerometer();
-
-
+        mAccelerometerListener = new AccelerometerListener(this);
     }
 
     @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
+    public void onDestroy() {
+        super.onDestroy();
     }
 
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        float xValue = event.values[0];
-        float yValue = event.values[1];
-        float zValue = event.values[2];
-        Log.d("PPPPP", "x:"+xValue +";y:"+yValue+";z:"+zValue);
-
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
-            mGravity = event.values.clone();
-
-            // Shake detection
-            float x = mGravity[0];
-            float y = mGravity[1];
-            float z = mGravity[2];
-
-            mAccelLast = mAccelCurrent;
-            mAccelCurrent = (float) Math.sqrt(x*x + y*y + z*z);
-
-            float delta = mAccelCurrent - mAccelLast;
-            mAccel = mAccel * 0.9f + delta;
-
-
-            // Make this higher or lower according to how much motion you want to detect
-            if(mAccel > 3){
-                mAccelerometerMonitorCallback.callback(AccelerometerMonitorConfig.MOTION_MOVE);
-            } else {
-                mAccelerometerMonitorCallback.callback(AccelerometerMonitorConfig.MOTION_STOP);
-            }
-        }
-        this.updateValue(mAccel,mGravity);
-    }
     public void updateValue(float acceleration, float[] gravity){
-        txtacc = (TextView) layout.findViewById(R.id.acceleration);
-        txtgravity = (TextView) layout.findViewById(R.id.gravity);
+        TextView txtacc = (TextView) layout.findViewById(R.id.acceleration);
+        TextView txtgravity = (TextView) layout.findViewById(R.id.gravity);
         if(txtacc != null) {
             txtacc.setText(String.format("Acceleration | %.6f", acceleration));
         }
         if(txtgravity != null) {
-            txtgravity.setText(String.format("Gravity | %.6f %.6f %.6f", mGravity[0],mGravity[1],mGravity[2]));
+            txtgravity.setText(String.format("Gravity | %.6f %.6f %.6f", gravity[0],gravity[1],gravity[2]));
         }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        mAccelerometerListener.onThreadResume();
+
+        // load inference task
+        mHandler = new Handler();
+        mRunnable.run();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        mSensorManager.unregisterListener(this);
+        mAccelerometerListener.onThreadPause();
+
+        // remove inference task
+        mHandler.removeCallbacks(mRunnable);
+
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        layout = inflater.inflate(R.layout.tab_fragment_1, container, false);
+        layout = (ConstraintLayout)inflater.inflate(R.layout.tab_fragment_1, container, false);
         button = layout.findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View arg0) {
