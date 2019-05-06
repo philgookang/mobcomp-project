@@ -10,13 +10,17 @@ import android.support.v4.app.Fragment;
 import kr.ac.snu.mobcomp_project.TabFragment1;
 
 public class AccelerometerListener implements SensorEventListener {
-    public SensorManager mSensorManager;
+    //public SensorManager mSensorManager;
     public float[] mGravity;
     public float mAccel;
     public float mAccelCurrent;
     public float mAccelLast;
-    public Sensor mAccelerometer;
+    //public Sensor mAccelerometer;
 
+
+    private SensorManager mSensorManager;
+    private Sensor mAccelerometer;
+    private Activity mActivity;
     private AccelerometerMonitorCallback mAccelerometerMonitorCallback;
     private TabFragment1 cur_fragment;
 
