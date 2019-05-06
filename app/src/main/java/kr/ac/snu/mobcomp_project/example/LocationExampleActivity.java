@@ -6,7 +6,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
 
 import kr.ac.snu.mobcomp_project.R;
-import kr.ac.snu.mobcomp_project.component.AccelerometerMonitor;
 import kr.ac.snu.mobcomp_project.component.AccelerometerMonitorCallback;
 import kr.ac.snu.mobcomp_project.component.LocationMonitor;
 
@@ -21,7 +20,7 @@ public class LocationExampleActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         mActivity = this;
 
-        mLocationMonitor = new LocationMonitor(mActivity, savedInstanceState);
+        //mLocationMonitor = new LocationMonitor(mActivity, savedInstanceState);
     }
 
     @Override

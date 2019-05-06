@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.Toast;
@@ -29,26 +30,37 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
+import kr.ac.snu.mobcomp_project.TabFragment1;
+
 public class LocationMonitor {
 
     private Activity mActivity;
+    private TabFragment1 cur_fragment;
     private FusedLocationProviderClient mFusedLocationClient;
     private LocationManager mLocationManager;
 
     private Boolean GPSLocatingEnabled = true;
     private Boolean NetworkLocationEnabled = true;
 
+    public static final int LOCATION_PERMISSIONS = 2;
+
     private LocationRequest mLocationRequest;
-
     private LocationCallback mLocationCallback;
-
     private Boolean requestingLocationUpdates;
 
     protected static final int REQUEST_CHECK_SETTINGS = 0x1;
     protected final static String REQUESTING_LOCATION_UPDATES_KEY = "requesting-location-updates-key";
 
-    public LocationMonitor(Activity _mActivity, Bundle savedInstanceState) {
-        mActivity = _mActivity;
+    public double latitude;
+    public double longitude;
+    public float speed;
+    private int SAMPLING_INTERVAL = 5000;
+    private int MIN_SAMPLING_INTERVAL = 2500;
+
+
+    public LocationMonitor(Activity activity, Bundle savedInstanceState, Fragment mFragment) {
+        cur_fragment = (TabFragment1)mFragment;
+        mActivity = activity;
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(mActivity);
         mLocationManager = (LocationManager) mActivity.getSystemService(Context.LOCATION_SERVICE);
 
@@ -57,13 +69,13 @@ public class LocationMonitor {
                 ContextCompat.checkSelfPermission(mActivity, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(mActivity, "Need GPS Permission", Toast.LENGTH_LONG).show();
 
-            ActivityCompat.requestPermissions(mActivity, new String[]{
+            ActivityCompat.requestPermissions(mActivity,new String[]{
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE,
                     Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.ACCESS_NETWORK_STATE,
                     Manifest.permission.ACCESS_WIFI_STATE
-            }, 1);
+            }, LOCATION_PERMISSIONS);
         } else {
             setup();
         }
@@ -86,18 +98,18 @@ public class LocationMonitor {
             public void onSuccess(Location location) {
                 // Got last known location. In some rare situations this can be null.
                 if (location != null) {
-                    double latitude = location.getLatitude();
-                    double longitude = location.getLongitude();
-                    float speed = location.getSpeed();
-
+                    latitude = location.getLatitude();
+                    longitude = location.getLongitude();
+                    speed = location.getSpeed();
+                    cur_fragment.updateLocationValue(latitude,longitude,speed);
                     Log.d("OOOOO", "latitude: " + String.valueOf(latitude) + "   longitude: " + String.valueOf(longitude) + "   speed: " + String.valueOf(speed) );
                 }
             }
         });
 
         mLocationRequest = LocationRequest.create();
-        mLocationRequest.setInterval(10000);
-        mLocationRequest.setFastestInterval(5000);
+        mLocationRequest.setInterval(SAMPLING_INTERVAL);
+        mLocationRequest.setFastestInterval(MIN_SAMPLING_INTERVAL);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         LocationSettingsRequest.Builder mLocationSettingsRequestBuilder = new LocationSettingsRequest.Builder().addLocationRequest(mLocationRequest);
@@ -135,9 +147,10 @@ public class LocationMonitor {
                     return;
                 }
                 for (Location location : locationResult.getLocations()) {
-                    double latitude = location.getLatitude();
-                    double longitude = location.getLongitude();
-                    float speed = location.getSpeed();
+                    latitude = location.getLatitude();
+                    longitude = location.getLongitude();
+                    speed = location.getSpeed();
+                    cur_fragment.updateLocationValue(latitude,longitude,speed);
 
                     Log.d("PPPP", "latitude: " + String.valueOf(latitude) + "   longitude: " + String.valueOf(longitude) + "   speed: " + String.valueOf(speed) );
                 }

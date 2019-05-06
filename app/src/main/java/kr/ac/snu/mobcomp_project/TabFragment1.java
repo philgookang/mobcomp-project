@@ -9,6 +9,7 @@ import android.support.annotation.Nullable;
 import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.Fragment;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,7 @@ import android.widget.TextView;
 
 import kr.ac.snu.mobcomp_project.afterdetection.CallManager;
 import kr.ac.snu.mobcomp_project.component.AccelerometerListener;
+import kr.ac.snu.mobcomp_project.component.LocationMonitor;
 
 public class TabFragment1 extends Fragment
 {
@@ -45,6 +47,7 @@ public class TabFragment1 extends Fragment
         super.onCreate(savedInstanceState);
         //load components
         mAccelerometerListener = new AccelerometerListener(this);
+        ((MainActivity)getActivity()).mLocationMonitor = new LocationMonitor(getActivity(), savedInstanceState,this); // Why
     }
 
     @Override
@@ -62,24 +65,39 @@ public class TabFragment1 extends Fragment
             txtgravity.setText(String.format("Gravity | %.6f %.6f %.6f", gravity[0],gravity[1],gravity[2]));
         }
     }
+    public void updateLocationValue(double latitude, double longitude, float speed){
+        TextView txtgps = (TextView) layout.findViewById(R.id.gps_location);
+        if(txtgps != null){
+            System.out.println(latitude);
+            Log.d("Fragment1", "latitude: " + String.valueOf(latitude) + "   longitude: " + String.valueOf(longitude) + "   speed: " + String.valueOf(speed) );
+            txtgps.setText(String.format("GPS | %.6f , %.6f , %.6f", latitude, longitude, speed));
+            //txtgps.setText(String.format("Original Value a b c d e f g", (float)latitude));
+        }
+        else{
+            System.out.println("Cannot find txtgps");
+        }
+    }
 
     @Override
     public void onResume() {
-        super.onResume();
         mAccelerometerListener.onThreadResume();
+        ((MainActivity)getActivity()).mLocationMonitor.onResume();
         // load inference task
         mHandler = new Handler();
         mRunnable = new DrowsyDetector(getActivity(),mHandler,mAccelerometerListener);
         mRunnable.run();
+        super.onResume();
+
     }
 
     @Override
     public void onPause() {
-        super.onPause();
         mAccelerometerListener.onThreadPause();
+        ((MainActivity)getActivity()).mLocationMonitor.onPause();
         // remove inference task
         ((DrowsyDetector)mRunnable).close();
         mHandler.removeCallbacks(mRunnable);
+        super.onPause();
 
     }
     @Nullable
@@ -112,6 +130,13 @@ public class TabFragment1 extends Fragment
                 }
                 return;
             }
+
         }
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        ((MainActivity)getActivity()).mLocationMonitor.onSaveInstanceState(outState);
+        super.onSaveInstanceState(outState);
     }
 }
