@@ -31,7 +31,7 @@ public class AudioRecordActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.RECORD_AUDIO}, 0);
         } else {
-//            this.setUpRecorder();
+            this.setUpRecorder();
             System.out.println(getFilesDir());
         }
     }
@@ -40,9 +40,10 @@ public class AudioRecordActivity extends AppCompatActivity {
         if(recorder == null) {
             recorder = new MediaRecorder();
             recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
             recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
             String fileDir = getFilesDir() + "";
+            System.out.println(fileDir);
             recorder.setOutputFile(fileDir);
         } else {
             System.out.println("Recorder not null");
