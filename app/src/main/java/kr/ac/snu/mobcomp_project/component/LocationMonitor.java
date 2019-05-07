@@ -39,14 +39,14 @@ public class LocationMonitor {
     private FusedLocationProviderClient mFusedLocationClient;
     private LocationManager mLocationManager;
 
-    private Boolean GPSLocatingEnabled = true;
-    private Boolean NetworkLocationEnabled = true;
+    private boolean GPSLocatingEnabled = true;
+    private boolean NetworkLocationEnabled = true;
 
     public static final int LOCATION_PERMISSIONS = 2;
 
     private LocationRequest mLocationRequest;
     private LocationCallback mLocationCallback;
-    private Boolean requestingLocationUpdates;
+    private boolean requestingLocationUpdates;
 
     protected static final int REQUEST_CHECK_SETTINGS = 0x1;
     protected final static String REQUESTING_LOCATION_UPDATES_KEY = "requesting-location-updates-key";
@@ -176,7 +176,9 @@ public class LocationMonitor {
     }
 
     public void onSaveInstanceState(Bundle outState) {
-        outState.putBoolean(REQUESTING_LOCATION_UPDATES_KEY, requestingLocationUpdates);
+        if(outState != null) {
+            outState.putBoolean(REQUESTING_LOCATION_UPDATES_KEY, requestingLocationUpdates);
+        }
     }
 
     private void updateValuesFromBundle(Bundle savedInstanceState) {

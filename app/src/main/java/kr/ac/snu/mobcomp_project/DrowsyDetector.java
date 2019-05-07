@@ -2,19 +2,18 @@ package kr.ac.snu.mobcomp_project;
 
 import android.app.Activity;
 import android.content.res.AssetFileDescriptor;
+import android.os.Environment;
 import android.os.Handler;
+import android.util.Log;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import org.tensorflow.lite.Interpreter;
+import umich.cse.yctung.androidlibsvm.LibSVM;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
 
 import kr.ac.snu.mobcomp_project.component.AccelerometerListener;
 
@@ -22,59 +21,84 @@ public class DrowsyDetector implements Runnable {
     private int mInterval = 1000;
     private AccelerometerListener accelerometerListener;
     private Handler mHandler;
-    public DrowsyDetector(Activity activity,Handler mHandler_in, AccelerometerListener accelerometerListener_in) {
+    private TabFragment1 cur_fragment;
+    private final String TAG = "DrowsyDetector";
+    private LibSVM svm;
+    public DrowsyDetector(Activity activity,TabFragment1 fragment, Handler mHandler_in, AccelerometerListener accelerometerListener_in) {
+        cur_fragment = fragment;
         mHandler = mHandler_in;
         accelerometerListener = accelerometerListener_in;
         try{
+            // initialize SVM
+            svm = new LibSVM();
+            //load DL model and allocate DL I/O
             tfliteModel = loadModelFile(activity);
             tflite = new Interpreter(tfliteModel, tfliteOptions);
-            inputData = ByteBuffer.allocateDirect( DIM_BATCH_SIZE * SIZE_OF_WINDOW * NUMBER_OF_FEATURES * SIZE_OF_FLOAT);
-            inputData.order(ByteOrder.nativeOrder());
+            raw_input = new float[DIM_BATCH_SIZE][SIZE_OF_WINDOW][NUMBER_OF_FEATURES];
             labelProbArray = new float[1][getNumLabels()];
-            System.out.println("Created a TFLITE classifier");
+            Log.d(TAG,"Loaded a TFLITE classifier");
+
         }catch (IOException e){
             e.printStackTrace();
         }
-
     }
+    String systemPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
+    String appFolderPath = systemPath + "libsvm/";
 
-    private byte[] randominput;
-    private final int SIZE_OF_FLOAT = 4;
     @Override
-    public void run() {
+    public void run() { // run inference
         try{
-            if(accelerometerListener != null) {
-                if(accelerometerListener.mGravity != null) {
-                    System.out.println(String.format("%6f %6f",
-                            accelerometerListener.mAccel,
-                            accelerometerListener.mGravity[0]));
-                }
-            }
+            //ML inference
+            // How do you use SVM in time-series data?
+            //DL inference
             if(tflite != null) {
-                randominput = new byte[DIM_BATCH_SIZE * SIZE_OF_WINDOW * NUMBER_OF_FEATURES * SIZE_OF_FLOAT];
-                new Random().nextBytes(randominput);
-                inputData = ByteBuffer.wrap(randominput);
-                //input_list.add()
-                tflite.run(inputData, labelProbArray);
-                System.out.println("Inference");
-                System.out.println(Arrays.toString(labelProbArray[0]));
-            }
-            else {
-                System.out.println("Inference Fail");
+                DLinputUpdate();
+                tflite.run(raw_input, labelProbArray);
+                cur_fragment.updateDLInference(labelProbArray[0],getNumLabels());
+                Log.d(TAG,String.format("Inference : %s", Arrays.toString(labelProbArray[0])));
             }
         }finally {
             mHandler.postDelayed(this,mInterval);
         }
     }
+    private void DLinputUpdate(){
+        for(int i = 0; i < DIM_BATCH_SIZE; i++){
+            for(int j = 0; j < SIZE_OF_WINDOW-1; j++){
+                for(int k = 0 ; k < NUMBER_OF_FEATURES; k++){
+                    raw_input[i][j][k] = raw_input[i][j+1][k];
+                }
+            }
+        }
+
+        for(int i = 0; i < DIM_BATCH_SIZE; i++){
+            if(accelerometerListener != null){
+                raw_input[i][SIZE_OF_WINDOW - 1][0] = accelerometerListener.mAccel;
+            }
+            if(accelerometerListener.mGravity != null) {
+                raw_input[i][SIZE_OF_WINDOW - 1][1] = accelerometerListener.mGravity[0];
+                raw_input[i][SIZE_OF_WINDOW - 1][2] = accelerometerListener.mGravity[1];
+            }
+            else{
+                raw_input[i][SIZE_OF_WINDOW - 1][0] = 0.0f;
+                raw_input[i][SIZE_OF_WINDOW - 1][1] = 0.0f;
+                raw_input[i][SIZE_OF_WINDOW - 1][2] = 0.0f;
+            }
+        }
+    }
     public void close(){
         tflite.close();
     }
+    //Constants
     private final int DIM_BATCH_SIZE = 1;
     private final int SIZE_OF_WINDOW = 20;
     private final int NUMBER_OF_FEATURES = 3;
     private final int NUMBER_OF_CLASSES = 7;
-    private ByteBuffer inputData = null;
+    // DL I/O
+    private float[][][] raw_input = null;
     private float[][] labelProbArray = null;
+
+
+    // DL classifier loading part
     private MappedByteBuffer tfliteModel;
     private Interpreter tflite;
     private final Interpreter.Options tfliteOptions = new Interpreter.Options();

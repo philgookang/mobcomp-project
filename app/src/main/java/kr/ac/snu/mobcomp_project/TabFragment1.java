@@ -77,6 +77,19 @@ public class TabFragment1 extends Fragment
             System.out.println("Cannot find txtgps");
         }
     }
+    public void updateDLInference(float[] lableProbArray, int length){
+        TextView txtinf = (TextView) layout.findViewById(R.id.Inference);
+        if(txtinf != null){
+            String temp = "";
+            for(int i = 0; i < length; i++) {
+                temp = String.format("%s%.2f, ",temp,lableProbArray[i]);
+            }
+            txtinf.setText(String.format("DL | %s ",temp));
+        }
+        else{
+            System.out.println("Cannot find txtinf");
+        }
+    }
 
     @Override
     public void onResume() {
@@ -84,7 +97,7 @@ public class TabFragment1 extends Fragment
         ((MainActivity)getActivity()).mLocationMonitor.onResume();
         // load inference task
         mHandler = new Handler();
-        mRunnable = new DrowsyDetector(getActivity(),mHandler,mAccelerometerListener);
+        mRunnable = new DrowsyDetector(getActivity(),this,mHandler,mAccelerometerListener);
         mRunnable.run();
         super.onResume();
 
