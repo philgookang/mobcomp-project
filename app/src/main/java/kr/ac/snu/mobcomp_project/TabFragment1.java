@@ -1,6 +1,7 @@
 package kr.ac.snu.mobcomp_project;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -16,8 +17,12 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import kr.ac.snu.mobcomp_project.afterdetection.CallManager;
 import kr.ac.snu.mobcomp_project.component.AccelerometerListener;
+import kr.ac.snu.mobcomp_project.component.AudioRecordActivity;
 import kr.ac.snu.mobcomp_project.component.LocationMonitor;
 
 public class TabFragment1 extends Fragment
@@ -95,6 +100,8 @@ public class TabFragment1 extends Fragment
     public void onResume() {
         mAccelerometerListener.onThreadResume();
         ((MainActivity)getActivity()).mLocationMonitor.onResume();
+        getTime();
+
         // load inference task
         mHandler = new Handler();
         mRunnable = new DrowsyDetector(getActivity(),this,mHandler,mAccelerometerListener);
@@ -113,6 +120,8 @@ public class TabFragment1 extends Fragment
         super.onPause();
 
     }
+    private Button timebutton;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -127,6 +136,12 @@ public class TabFragment1 extends Fragment
             }
         });
         mCallManager.RedialListen((TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE)); // Redial check
+        timebutton = layout.findViewById(R.id.timebutton);
+        timebutton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View arg0) {
+                getTime();
+            }
+        });
         return layout;
     }
     @Override
@@ -151,5 +166,16 @@ public class TabFragment1 extends Fragment
     public void onSaveInstanceState(@NonNull Bundle outState) {
         ((MainActivity)getActivity()).mLocationMonitor.onSaveInstanceState(outState);
         super.onSaveInstanceState(outState);
+    }
+    public void getTime() {
+        TextView currTime = layout.findViewById(R.id.date);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd G 'at' HH:mm:ss z");
+        String currDateTime = sdf.format(new Date());
+        currTime.setText(currDateTime);
+    }
+
+    public void startRecordActivity(View view) {
+        Intent intent = new Intent(getActivity(),AudioRecordActivity.class);
+        this.startActivity(intent);
     }
 }
