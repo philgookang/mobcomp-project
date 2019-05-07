@@ -5,3 +5,5 @@ Intermediate Demo :
 <https://youtu.be/htcI8oDkYf4>
 
 Tensorflow Lite on Detector module
+
+DL : TF lite module inference result
