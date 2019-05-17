@@ -11,12 +11,16 @@ import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 
+import kr.ac.snu.mobcomp_project.component.AccelerometerListener;
 import kr.ac.snu.mobcomp_project.component.LocationMonitor;
 
 public class MainActivity extends AppCompatActivity  {
     private ViewPager vp;
     public String designated_phone_number;
     public LocationMonitor mLocationMonitor;
+    public long cur_time_in_sec;
+    //Sensor
+    public AccelerometerListener mAccelerometerListener;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

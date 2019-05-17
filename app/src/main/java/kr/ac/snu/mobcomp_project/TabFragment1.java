@@ -33,8 +33,7 @@ public class TabFragment1 extends Fragment
     private int prev_state;
     private CallManager mCallManager;
 
-    //Sensor
-    private AccelerometerListener mAccelerometerListener;
+
     //View
     ConstraintLayout layout;
 
@@ -51,7 +50,7 @@ public class TabFragment1 extends Fragment
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //load components
-        mAccelerometerListener = new AccelerometerListener(this);
+        ((MainActivity)getActivity()).mAccelerometerListener = new AccelerometerListener(this);
         ((MainActivity)getActivity()).mLocationMonitor = new LocationMonitor(getActivity(), savedInstanceState,this); // Why
     }
 
@@ -98,13 +97,13 @@ public class TabFragment1 extends Fragment
 
     @Override
     public void onResume() {
-        mAccelerometerListener.onThreadResume();
+        ((MainActivity)getActivity()).mAccelerometerListener.onThreadResume();
         ((MainActivity)getActivity()).mLocationMonitor.onResume();
         getTime();
 
         // load inference task
         mHandler = new Handler();
-        mRunnable = new DrowsyDetector(getActivity(),this,mHandler,mAccelerometerListener);
+        mRunnable = new DrowsyDetector(getActivity(),this,mHandler,((MainActivity)getActivity()).mAccelerometerListener,((MainActivity) getActivity()).mLocationMonitor);
         mRunnable.run();
         super.onResume();
 
@@ -112,7 +111,7 @@ public class TabFragment1 extends Fragment
 
     @Override
     public void onPause() {
-        mAccelerometerListener.onThreadPause();
+        ((MainActivity)getActivity()).mAccelerometerListener.onThreadPause();
         ((MainActivity)getActivity()).mLocationMonitor.onPause();
         // remove inference task
         ((DrowsyDetector)mRunnable).close();
