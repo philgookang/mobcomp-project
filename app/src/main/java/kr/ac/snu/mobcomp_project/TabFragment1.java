@@ -134,6 +134,14 @@ public class TabFragment1 extends Fragment
                 mCallManager.checkPermissionandCall(TabFragment1.this, arg0); // Permission Check
             }
         });
+        layout.findViewById(R.id.svm_train).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(mRunnable != null){
+                    ((DrowsyDetector)mRunnable).train_svm();
+                }
+            }
+        });
         mCallManager.RedialListen((TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE)); // Redial check
         timebutton = layout.findViewById(R.id.timebutton);
         timebutton.setOnClickListener(new View.OnClickListener() {
