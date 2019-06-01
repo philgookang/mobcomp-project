@@ -1,22 +1,32 @@
 package kr.ac.snu.mobcomp_project;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.constraint.ConstraintLayout;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -25,7 +35,7 @@ import kr.ac.snu.mobcomp_project.component.AccelerometerListener;
 import kr.ac.snu.mobcomp_project.component.AudioRecordActivity;
 import kr.ac.snu.mobcomp_project.component.LocationMonitor;
 
-public class TabFragment1 extends Fragment
+public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
 {
     //Calling
     private Button button;
@@ -94,6 +104,15 @@ public class TabFragment1 extends Fragment
             System.out.println("Cannot find txtinf");
         }
     }
+    public void updateMLInference(int output){
+        TextView txtinf = (TextView) layout.findViewById(R.id.svm);
+        if(txtinf != null){
+            txtinf.setText(String.format("ML | %d ",output));
+        }
+        else{
+            System.out.println("Cannot find txtsvm");
+        }
+    }
 
     @Override
     public void onResume() {
@@ -149,7 +168,40 @@ public class TabFragment1 extends Fragment
                 getTime();
             }
         });
+        //load camera preview
+        requestPermissionCamera();
+
         return layout;
+    }
+    public int frontcam = 0;
+    public void setInit(){
+        Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+        for(int camIdx = 0; camIdx < Camera.getNumberOfCameras(); camIdx++){
+            Camera.getCameraInfo(camIdx, cameraInfo);
+            if(cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT){
+                frontcam = camIdx;
+            }
+        }
+        camera = Camera.open(frontcam);
+        surfaceView = (SurfaceView)layout.findViewById(R.id.camerapreview);
+        //surfaceView.setVisibility(View.GONE);
+        surfaceHolder = surfaceView.getHolder();
+        surfaceHolder.addCallback(this);
+        surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
+
+    }
+    private final int CAMERA_PERMISSIONS = 9;
+    public boolean requestPermissionCamera(){
+        if ( ContextCompat.checkSelfPermission(getActivity(), android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ) {
+            Toast.makeText(getActivity(), "Need Camera Permission", Toast.LENGTH_LONG).show();
+            ActivityCompat.requestPermissions(getActivity(),new String[]{Manifest.permission.CAMERA
+            }, CAMERA_PERMISSIONS);
+        }
+        else{
+            setInit();
+        }
+        return true;
     }
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -164,6 +216,14 @@ public class TabFragment1 extends Fragment
                 } else {
                 }
                 return;
+            }
+            case CAMERA_PERMISSIONS : {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) { // Permission Granted
+                    setInit();
+                }else{
+
+                }
             }
 
         }
@@ -184,5 +244,65 @@ public class TabFragment1 extends Fragment
     public void startRecordActivity(View view) {
         Intent intent = new Intent(getActivity(),AudioRecordActivity.class);
         this.startActivity(intent);
+    }
+
+    Camera camera;
+    SurfaceView surfaceView;
+    SurfaceHolder surfaceHolder;
+    boolean previewing = false;
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        camera = Camera.open(frontcam);
+        if(camera != null){
+            try {
+                camera.setPreviewDisplay(surfaceHolder);
+                camera.startPreview();
+            }catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        if(surfaceHolder.getSurface() == null){
+            return;
+        }
+        if(previewing){
+            camera.stopPreview();
+            previewing = false;
+        }
+        if(camera != null){
+            try{
+                Camera.Parameters parameters = camera .getParameters();
+
+                // 카메라의 회전이 가로/세로일때 화면을 설정한다.
+                if (getResources().getConfiguration().orientation != Configuration.ORIENTATION_LANDSCAPE) {
+                    parameters.set("orientation", "portrait");
+                    camera.setDisplayOrientation(90);
+                    parameters.setRotation(90);
+                } else {
+                    parameters.set("orientation", "landscape");
+                    camera.setDisplayOrientation(0);
+                    parameters.setRotation(0);
+                }
+                camera.setParameters(parameters);
+                camera.setPreviewDisplay(surfaceHolder);
+                camera.startPreview();
+            }
+            catch(IOException e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        if(camera != null) {
+            camera.stopPreview();
+            camera.release();
+            camera = null;
+            previewing = false;
+        }
     }
 }

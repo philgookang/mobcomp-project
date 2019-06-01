@@ -9,7 +9,9 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.support.v4.view.WindowCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Window;
 
 import kr.ac.snu.mobcomp_project.component.AccelerometerListener;
 import kr.ac.snu.mobcomp_project.component.LocationMonitor;
@@ -24,6 +26,7 @@ public class MainActivity extends AppCompatActivity  {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
         vp = (ViewPager)findViewById(R.id.vp);
         vp.setAdapter(new pagerAdapter( getSupportFragmentManager()));

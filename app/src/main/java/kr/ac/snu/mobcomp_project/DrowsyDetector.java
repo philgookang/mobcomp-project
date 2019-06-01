@@ -6,9 +6,11 @@ import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
@@ -34,6 +36,7 @@ public class DrowsyDetector implements Runnable {
     private LibSVM svm;
     File savedir;
     BufferedWriter train_writer;
+    BufferedWriter predict_writer;
     private int number_of_training_data;
     public DrowsyDetector(Activity activity, TabFragment1 fragment, Handler mHandler_in,
                           AccelerometerListener accelerometerListener_in,
@@ -50,7 +53,16 @@ public class DrowsyDetector implements Runnable {
             if(!savedir.exists()){
                 savedir.mkdir();
             }
-            train_writer = new BufferedWriter(new FileWriter(savedir + raw_data, true));
+            File svm_train_data = new File(appFolderPath + raw_data);
+            if(!svm_train_data.exists()) {
+                try{
+                    svm_train_data.createNewFile();
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
+
+            train_writer = new BufferedWriter(new FileWriter(appFolderPath + raw_data, true));
             //load DL model and allocate DL I/O
             tfliteModel = loadModelFile(activity);
             tflite = new Interpreter(tfliteModel, tfliteOptions);
@@ -65,12 +77,14 @@ public class DrowsyDetector implements Runnable {
     String systemPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
     String appFolderPath = systemPath + "libsvm/";
     String raw_data = "svm_train.txt";
+    String predict_data = "svm_predict.txt";
     String scaled_data = "svm_train_scaled.txt";
-    String model_name = "svm_model.txt";
+    String predict_scaled_data = "svm_predict_scaled.txt";
+    String model_name = "svm_model.mdl";
     String result_name = "result.txt";
     public void train_svm(){
         if(svm != null){
-            svm.scale(appFolderPath + "heart_scale.txt" , appFolderPath + scaled_data);
+            svm.scale(appFolderPath + raw_data , appFolderPath + scaled_data);
             File svm_model = new File(appFolderPath + model_name);
             if(!svm_model.exists()) {
                 try{
@@ -80,16 +94,14 @@ public class DrowsyDetector implements Runnable {
                 }
             }
             if(svm_model.exists()) {
-                svm.train("-t 2" + appFolderPath + scaled_data + " " + appFolderPath + model_name);
-                //svm.predict(appFolderPath + scaled_data + " " + appFolderPath + model_name + " " + appFolderPath + result_name);
+                svm.train("-t 2 " + appFolderPath + scaled_data + " " + appFolderPath + model_name);
+                svm.predict(appFolderPath + scaled_data + " " + appFolderPath + model_name + " " + appFolderPath + result_name);
             }
         }
     }
     @Override
     public void run() { // run inference
         try{
-            //ML inference
-            // How do you use SVM in time-series data?
             //DL inference
             if(tflite != null) {
                 DLinputUpdate();
@@ -97,6 +109,23 @@ public class DrowsyDetector implements Runnable {
                 cur_fragment.updateDLInference(labelProbArray[0],getNumLabels());
                 Log.d(TAG,String.format("Inference : %s", Arrays.toString(labelProbArray[0])));
             }
+            //ML inference
+            // How do you use SVM in time-series data?
+            if(svm != null){
+                svm.scale(appFolderPath + predict_data , appFolderPath + predict_scaled_data);
+                svm.predict(appFolderPath + predict_scaled_data + " " + appFolderPath + model_name + " " + appFolderPath + result_name);
+                String temp = "";
+                try{
+                    BufferedReader br = new BufferedReader(new FileReader(appFolderPath + result_name));
+                    temp = br.readLine();
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+                if(temp != null) {
+                    cur_fragment.updateMLInference(Integer.parseInt(temp));
+                }
+            }
+
         }finally {
             mHandler.postDelayed(this,mInterval);
         }
@@ -104,17 +133,38 @@ public class DrowsyDetector implements Runnable {
     private final int MAX_TRAINING_DATA = 1000;
     private void DLinputUpdate(){
         try {
-
+            //Clear svm_predict.txt
+            File svm_predict_data = new File(appFolderPath + predict_data);
+            if(!svm_predict_data.exists()) {
+                try{
+                    svm_predict_data.createNewFile();
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
+            else{
+                svm_predict_data.delete();
+                try{
+                    svm_predict_data.createNewFile();
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
+            predict_writer = new BufferedWriter(new FileWriter(appFolderPath + predict_data, false));
+            // Collect data from sensor managers and write to svm train and predict
+            String temp = "";
             for (int i = 0; i < DIM_BATCH_SIZE; i++) {
                 if(number_of_training_data < MAX_TRAINING_DATA) {
                     Random rand = new Random();
                     train_writer.append(Integer.toString(rand.nextInt(2)) + " ");
+                    temp = temp + Integer.toString(rand.nextInt(2)) + " ";
                 }
                 for (int j = 0; j < SIZE_OF_WINDOW - 1; j++) {
                     for (int k = 0; k < NUMBER_OF_FEATURES; k++) {
                         raw_input[i][j][k] = raw_input[i][j + 1][k];
                         if(number_of_training_data < MAX_TRAINING_DATA && raw_input[i][j][k] != 0.0) {
-                        train_writer.append(Integer.toString(j * NUMBER_OF_FEATURES + k) + ":" + Float.toString(raw_input[i][j][k]) + " ");
+                            train_writer.append(Integer.toString(j * NUMBER_OF_FEATURES + k) + ":" + Float.toString(raw_input[i][j][k]) + " ");
+                            temp = temp + Integer.toString(j * NUMBER_OF_FEATURES + k) + ":" + Float.toString(raw_input[i][j][k]) + " ";
                         }
                     }
                 }
@@ -144,15 +194,20 @@ public class DrowsyDetector implements Runnable {
                 raw_input[i][SIZE_OF_WINDOW - 1][7] = ((float) ((System.currentTimeMillis()/ 1000) % 86400) );
                 if(number_of_training_data < MAX_TRAINING_DATA) {
                     for (int k = 0; k < NUMBER_OF_FEATURES; k++) {
-                        if(raw_input[i][SIZE_OF_WINDOW - 1][k] != 0.0)
+                        if(raw_input[i][SIZE_OF_WINDOW - 1][k] != 0.0) {
                             train_writer.append(Integer.toString((SIZE_OF_WINDOW - 1) * NUMBER_OF_FEATURES + k) + ":" + Float.toString(raw_input[i][SIZE_OF_WINDOW - 1][k]) + " ");
+                            temp = temp + Integer.toString((SIZE_OF_WINDOW - 1) * NUMBER_OF_FEATURES + k) + ":" + Float.toString(raw_input[i][SIZE_OF_WINDOW - 1][k]) + " ";
+                        }
                     }
                 }
                 if(number_of_training_data < MAX_TRAINING_DATA) {
                     train_writer.newLine();
+                    temp = temp +"\n";
                 }
                 number_of_training_data++;
             }
+            predict_writer.write(temp,0,temp.length());
+            predict_writer.flush();
         }
         catch (IOException e){
             e.printStackTrace();
