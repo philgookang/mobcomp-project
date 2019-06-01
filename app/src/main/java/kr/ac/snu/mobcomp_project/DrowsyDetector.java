@@ -195,10 +195,13 @@ public class DrowsyDetector implements Runnable {
                 if (accelerometerListener.mGravity != null) {
                     raw_input[i][SIZE_OF_WINDOW - 1][1] = accelerometerListener.mGravity[0];
                     raw_input[i][SIZE_OF_WINDOW - 1][2] = accelerometerListener.mGravity[1];
-                    raw_input[i][SIZE_OF_WINDOW - 1][3] = accelerometerListener.mGravity[2];
                 } else {
                     raw_input[i][SIZE_OF_WINDOW - 1][1] = 0.0f;
                     raw_input[i][SIZE_OF_WINDOW - 1][2] = 0.0f;
+                }
+                if(cur_fragment.mEyeTracker != null){
+                    raw_input[i][SIZE_OF_WINDOW - 1][3] = cur_fragment.mEyeTracker.isEyeClosed? 1 : 0 ;
+                }else{
                     raw_input[i][SIZE_OF_WINDOW - 1][3] = 0.0f;
                 }
                 if (locationMonitor != null) {

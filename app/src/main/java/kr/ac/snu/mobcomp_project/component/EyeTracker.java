@@ -13,7 +13,7 @@ public class EyeTracker extends Tracker<Face> {
     private final float THRES = 0.5f;
 
     int count = 0;
-    boolean isEyeClosed = false;
+    public boolean isEyeClosed = false;
 
     public EyeTracker(Context context){
         this.context = context;
@@ -24,12 +24,12 @@ public class EyeTracker extends Tracker<Face> {
         float leftProb = face.getIsLeftEyeOpenProbability();
         float rightProb = face.getIsRightEyeOpenProbability();
 
-        Log.e("EyeTracker", "Blink Count: " + count);
+        Log.d("EyeTracker", "Blink Count: " + count);
 
         if(leftProb < THRES || rightProb < THRES){
             //Drowsy
             String s = "Drowsy! Left: " + leftProb + " Right: " + rightProb;
-            Log.e("EyeTracker", s);
+            Log.d("EyeTracker", s);
 
             if(!isEyeClosed)
                 isEyeClosed = true;
@@ -37,7 +37,7 @@ public class EyeTracker extends Tracker<Face> {
         else{
             // Normal
             String s = "Normal! Left: " + leftProb + " Right: " + rightProb;
-            Log.e("EyeTracker", s);
+            Log.d("EyeTracker", s);
 
             if(isEyeClosed){
                 isEyeClosed = false;
@@ -47,6 +47,7 @@ public class EyeTracker extends Tracker<Face> {
     }
 
     public void onMissing(Detector.Detections<Face> detections){
+        Log.d("EyeTracker", "onMissing");
         super.onMissing(detections);
 
     }
@@ -54,6 +55,7 @@ public class EyeTracker extends Tracker<Face> {
     @Override
     public void onDone(){
         super.onDone();
+        Log.d("EyeTracker", "onDone");
     }
 
 }

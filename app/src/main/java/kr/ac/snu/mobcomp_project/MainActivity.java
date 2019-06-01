@@ -13,6 +13,8 @@ import android.support.v4.view.WindowCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Window;
 
+import com.google.android.gms.vision.CameraSource;
+
 import kr.ac.snu.mobcomp_project.component.AccelerometerListener;
 import kr.ac.snu.mobcomp_project.component.LocationMonitor;
 
@@ -22,6 +24,7 @@ public class MainActivity extends AppCompatActivity  {
     public LocationMonitor mLocationMonitor;
     public long cur_time_in_sec;
     public Runnable mRunnable;
+    public CameraSource mCameraSource;
     //Sensor
     public AccelerometerListener mAccelerometerListener;
     @Override

@@ -26,6 +26,12 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.vision.CameraSource;
+import com.google.android.gms.vision.MultiProcessor;
+import com.google.android.gms.vision.Tracker;
+import com.google.android.gms.vision.face.Face;
+import com.google.android.gms.vision.face.FaceDetector;
+
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -33,7 +39,9 @@ import java.util.Date;
 import kr.ac.snu.mobcomp_project.afterdetection.CallManager;
 import kr.ac.snu.mobcomp_project.component.AccelerometerListener;
 import kr.ac.snu.mobcomp_project.component.AudioRecordActivity;
+import kr.ac.snu.mobcomp_project.component.EyeTracker;
 import kr.ac.snu.mobcomp_project.component.LocationMonitor;
+import kr.ac.snu.mobcomp_project.example.EyeTrackerExampleActivity;
 
 public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
 {
@@ -62,11 +70,14 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
         //load components
         ((MainActivity)getActivity()).mAccelerometerListener = new AccelerometerListener(this);
         ((MainActivity)getActivity()).mLocationMonitor = new LocationMonitor(getActivity(), savedInstanceState,this); // Why
+
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if(((MainActivity)getActivity()).mCameraSource != null)
+            ((MainActivity)getActivity()).mCameraSource.release();
     }
 
     public void updateValue(float acceleration, float[] gravity){
@@ -125,6 +136,13 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
         mRunnable = new DrowsyDetector(getActivity(),this,mHandler,((MainActivity)getActivity()).mAccelerometerListener,((MainActivity) getActivity()).mLocationMonitor);
         mRunnable.run();
         ((MainActivity) getActivity()).mRunnable = mRunnable;
+        try {
+            if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                ((MainActivity)getActivity()).mCameraSource.start(surfaceView.getHolder());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         super.onResume();
 
     }
@@ -137,6 +155,9 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
         ((DrowsyDetector)mRunnable).close();
         mHandler.removeCallbacks(mRunnable);
         ((MainActivity) getActivity()).mRunnable = null;
+        if (((MainActivity)getActivity()).mCameraSource != null){
+            ((MainActivity)getActivity()).mCameraSource.stop();
+        }
         super.onPause();
 
     }
@@ -182,23 +203,7 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
         return layout;
     }
     public int frontcam = 0;
-    public void setInit(){
-        Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-        for(int camIdx = 0; camIdx < Camera.getNumberOfCameras(); camIdx++){
-            Camera.getCameraInfo(camIdx, cameraInfo);
-            if(cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT){
-                frontcam = camIdx;
-            }
-        }
-        camera = Camera.open(frontcam);
-        surfaceView = (SurfaceView)layout.findViewById(R.id.camerapreview);
-        //surfaceView.setVisibility(View.GONE);
-        surfaceHolder = surfaceView.getHolder();
-        surfaceHolder.addCallback(this);
-        surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
-
-    }
     private final int CAMERA_PERMISSIONS = 9;
     public boolean requestPermissionCamera(){
         if ( ContextCompat.checkSelfPermission(getActivity(), android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ) {
@@ -207,7 +212,7 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
             }, CAMERA_PERMISSIONS);
         }
         else{
-            setInit();
+            createCameraSource();
         }
         return true;
     }
@@ -228,7 +233,7 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
             case CAMERA_PERMISSIONS : {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) { // Permission Granted
-                    setInit();
+                    createCameraSource();
                 }else{
 
                 }
@@ -249,30 +254,61 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
         currTime.setText(currDateTime);
     }*/
 
-    public void startRecordActivity(View view) {
-        Intent intent = new Intent(getActivity(),AudioRecordActivity.class);
-        this.startActivity(intent);
+    private static final String TAG = "EyeTracker";
+    EyeTracker mEyeTracker;
+    private class EyeTrackerFactory implements MultiProcessor.Factory<Face> {
+
+        @Override
+        public Tracker<Face> create(Face face) {
+            mEyeTracker = new EyeTracker(getActivity().getApplicationContext());
+            return mEyeTracker;
+        }
     }
 
-    Camera camera;
+
+    public void createCameraSource() {
+        Context context = getActivity().getApplicationContext();
+        FaceDetector detector = new FaceDetector.Builder(context)
+                .setClassificationType(FaceDetector.ALL_CLASSIFICATIONS)
+                .build();
+
+        detector.setProcessor(
+                new MultiProcessor.Builder<>(new EyeTrackerFactory()).build());
+
+        ((MainActivity)getActivity()).mCameraSource = new CameraSource.Builder(context, detector)
+                .setRequestedPreviewSize(360, 360)
+                .setFacing(CameraSource.CAMERA_FACING_FRONT)
+                .setRequestedFps(30.0f)
+                .build();
+
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        surfaceView = (SurfaceView)layout.findViewById(R.id.camerapreview);
+        surfaceHolder = surfaceView.getHolder();
+        surfaceHolder.addCallback(this);
+    }
+
+
     SurfaceView surfaceView;
     SurfaceHolder surfaceHolder;
-    boolean previewing = false;
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        camera = Camera.open(frontcam);
-        if(camera != null){
             try {
-                camera.setPreviewDisplay(surfaceHolder);
-                camera.startPreview();
+                if (ActivityCompat.checkSelfPermission((MainActivity)getActivity(),
+                        Manifest.permission.CAMERA)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    ((MainActivity)getActivity()).mCameraSource.start(holder);
+                    Log.d("SURFACE","Created");
+                }
             }catch (IOException e){
                 e.printStackTrace();
             }
-        }
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        /*
         if(surfaceHolder.getSurface() == null){
             return;
         }
@@ -302,15 +338,20 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
                 e.printStackTrace();
             }
         }
+        */
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        /*
         if(camera != null) {
             camera.stopPreview();
             camera.release();
             camera = null;
             previewing = false;
         }
+        */
+        Log.d("SURFACE","Destroyed");
+        ((MainActivity)getActivity()).mCameraSource.stop();
     }
 }
