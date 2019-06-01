@@ -99,6 +99,19 @@ public class DrowsyDetector implements Runnable {
             }
         }
     }
+    public void clear_svm_train_data(){
+        File svm_train_data = new File(appFolderPath + raw_data);
+        if(svm_train_data.exists()) {
+            svm_train_data.delete();
+
+        }
+        try{
+            svm_train_data.createNewFile();
+            train_writer = new BufferedWriter(new FileWriter(appFolderPath + raw_data, true));
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+    }
     @Override
     public void run() { // run inference
         try{
@@ -155,9 +168,15 @@ public class DrowsyDetector implements Runnable {
             String temp = "";
             for (int i = 0; i < DIM_BATCH_SIZE; i++) {
                 if(number_of_training_data < MAX_TRAINING_DATA) {
-                    Random rand = new Random();
-                    train_writer.append(Integer.toString(rand.nextInt(2)) + " ");
-                    temp = temp + Integer.toString(rand.nextInt(2)) + " ";
+                    int label;
+                    if(cur_fragment.drowsiness){
+                        label = 1;
+                    }
+                    else{
+                        label = 0;
+                    }
+                    train_writer.append(Integer.toString(label) + " ");
+                    temp = temp + Integer.toString(label) + " ";
                 }
                 for (int j = 0; j < SIZE_OF_WINDOW - 1; j++) {
                     for (int k = 0; k < NUMBER_OF_FEATURES; k++) {
@@ -208,6 +227,7 @@ public class DrowsyDetector implements Runnable {
             }
             predict_writer.write(temp,0,temp.length());
             predict_writer.flush();
+            System.out.println(temp);
         }
         catch (IOException e){
             e.printStackTrace();

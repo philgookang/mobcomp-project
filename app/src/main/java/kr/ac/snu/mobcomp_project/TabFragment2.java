@@ -55,6 +55,22 @@ public class TabFragment2 extends Fragment {
                 System.out.println(((MainActivity)getActivity()).designated_phone_number);
             }
         };
+        layout.findViewById(R.id.svm_train).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(((MainActivity) getActivity()).mRunnable != null){
+                    ((DrowsyDetector)((MainActivity) getActivity()).mRunnable).train_svm();
+                }
+            }
+        });
+        layout.findViewById(R.id.clear_train).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(((MainActivity) getActivity()).mRunnable != null){
+                    ((DrowsyDetector)((MainActivity) getActivity()).mRunnable).clear_svm_train_data();
+                }
+            }
+        });
         phone.addTextChangedListener(textWatcher);
         return layout;
     }

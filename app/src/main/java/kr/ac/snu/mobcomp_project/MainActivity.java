@@ -21,6 +21,7 @@ public class MainActivity extends AppCompatActivity  {
     public String designated_phone_number;
     public LocationMonitor mLocationMonitor;
     public long cur_time_in_sec;
+    public Runnable mRunnable;
     //Sensor
     public AccelerometerListener mAccelerometerListener;
     @Override

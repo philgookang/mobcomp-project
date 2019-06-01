@@ -118,12 +118,13 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
     public void onResume() {
         ((MainActivity)getActivity()).mAccelerometerListener.onThreadResume();
         ((MainActivity)getActivity()).mLocationMonitor.onResume();
-        getTime();
+        //getTime();
 
         // load inference task
         mHandler = new Handler();
         mRunnable = new DrowsyDetector(getActivity(),this,mHandler,((MainActivity)getActivity()).mAccelerometerListener,((MainActivity) getActivity()).mLocationMonitor);
         mRunnable.run();
+        ((MainActivity) getActivity()).mRunnable = mRunnable;
         super.onResume();
 
     }
@@ -135,11 +136,12 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
         // remove inference task
         ((DrowsyDetector)mRunnable).close();
         mHandler.removeCallbacks(mRunnable);
+        ((MainActivity) getActivity()).mRunnable = null;
         super.onPause();
 
     }
-    private Button timebutton;
-
+    private Button labelbutton;
+    public boolean drowsiness;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -153,21 +155,27 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
                 mCallManager.checkPermissionandCall(TabFragment1.this, arg0); // Permission Check
             }
         });
-        layout.findViewById(R.id.svm_train).setOnClickListener(new View.OnClickListener() {
+
+        mCallManager.RedialListen((TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE)); // Redial check
+        labelbutton = layout.findViewById(R.id.record);
+        drowsiness = false;
+        labelbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mRunnable != null){
-                    ((DrowsyDetector)mRunnable).train_svm();
+                if(drowsiness){
+                    labelbutton.setText("Awake");
+                }else{
+                    labelbutton.setText("Drowsy");
                 }
+                drowsiness = !drowsiness;
             }
         });
-        mCallManager.RedialListen((TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE)); // Redial check
-        timebutton = layout.findViewById(R.id.timebutton);
-        timebutton.setOnClickListener(new View.OnClickListener() {
+        //timebutton = layout.findViewById(R.id.timebutton);
+        /*timebutton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View arg0) {
                 getTime();
             }
-        });
+        });*/
         //load camera preview
         requestPermissionCamera();
 
@@ -234,12 +242,12 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback
         ((MainActivity)getActivity()).mLocationMonitor.onSaveInstanceState(outState);
         super.onSaveInstanceState(outState);
     }
-    public void getTime() {
+    /*public void getTime() {
         TextView currTime = layout.findViewById(R.id.date);
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd G 'at' HH:mm:ss z");
         String currDateTime = sdf.format(new Date());
         currTime.setText(currDateTime);
-    }
+    }*/
 
     public void startRecordActivity(View view) {
         Intent intent = new Intent(getActivity(),AudioRecordActivity.class);
