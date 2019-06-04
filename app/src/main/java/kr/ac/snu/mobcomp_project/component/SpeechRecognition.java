@@ -17,6 +17,7 @@ import java.util.ArrayList;
 public class SpeechRecognition implements RecognitionListener {
 
     private SpeechRecognitionListener listener = null;
+    private boolean continueSR = false;
 
 
     public interface SpeechRecognitionListener {
@@ -43,8 +44,8 @@ public class SpeechRecognition implements RecognitionListener {
         }
     }
 
-    public void startRecording() {
-        if(sr != null) {
+    private void fireSRIntent() {
+        if((sr != null) && continueSR) {
             Intent srIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
 
             srIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
@@ -55,10 +56,13 @@ public class SpeechRecognition implements RecognitionListener {
         }
     }
 
+    public void startRecording() {
+        continueSR = true;
+        fireSRIntent();
+    }
+
     public void stopRecording() {
-        if(sr != null) {
-            sr.stopListening();
-        }
+        continueSR = false;
     }
 
     private void log1(String message){Log.d("moo", message);}
@@ -80,6 +84,7 @@ public class SpeechRecognition implements RecognitionListener {
         }
         if(listener != null) {
            listener.onResult(1);
+           fireSRIntent();
         }
     }
     @Override public void onPartialResults(Bundle partialResults){log1("onPartialResults");}
@@ -103,6 +108,7 @@ public class SpeechRecognition implements RecognitionListener {
 
         if(listener != null) {
             listener.onResult(0);
+            fireSRIntent();
         }
     }
 
