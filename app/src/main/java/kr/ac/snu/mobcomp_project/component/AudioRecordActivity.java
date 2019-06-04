@@ -3,7 +3,6 @@ package kr.ac.snu.mobcomp_project.component;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -14,9 +13,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
-
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 
 import kr.ac.snu.mobcomp_project.R;
@@ -57,6 +53,10 @@ public class AudioRecordActivity extends AppCompatActivity implements Recognitio
         System.out.println("startRecording");
         if(sr != null) {
             Intent srIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+
+            srIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            srIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,"voice.recognition.test");
+            srIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,5);
 
             sr.startListening(srIntent);
         }
