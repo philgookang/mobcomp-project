@@ -4,9 +4,11 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.view.SurfaceView;
 import android.widget.Toast;
 
 import com.google.android.gms.vision.CameraSource;
@@ -18,24 +20,33 @@ import com.google.android.gms.vision.face.FaceDetector;
 import java.io.IOException;
 
 import kr.ac.snu.mobcomp_project.R;
+import kr.ac.snu.mobcomp_project.component.CameraPreview;
 import kr.ac.snu.mobcomp_project.component.EyeTracker;
 
 public class EyeTrackerExampleActivity extends Activity {
 
     private static final String TAG = "EyeTracker";
     CameraSource mCameraSource;
+    SurfaceView mSurfaceView;
+    CameraPreview mCameraPreview;
 
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         setContentView(R.layout.activity_eyetracker);
+
+        mSurfaceView = findViewById(R.id.camera_preview);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 0);
         }
 
+        startCamera();
         createCameraSource();
+    }
 
+    void startCamera(){
+        mCameraPreview = new CameraPreview(this, this, Camera.CameraInfo.CAMERA_FACING_FRONT, mSurfaceView);
     }
 
     @Override
@@ -68,9 +79,9 @@ public class EyeTrackerExampleActivity extends Activity {
                             .build());
 
             mCameraSource = new CameraSource.Builder(context, detector)
-                    .setRequestedPreviewSize(640, 480)
+                    .setRequestedPreviewSize(1280, 720)
                     .setFacing(CameraSource.CAMERA_FACING_FRONT)
-                    .setRequestedFps(30.0f)
+                    .setRequestedFps(10.0f)
                     .build();
 
             if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
