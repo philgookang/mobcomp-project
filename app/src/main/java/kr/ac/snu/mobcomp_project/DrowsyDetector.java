@@ -125,17 +125,20 @@ public class DrowsyDetector implements Runnable {
             //ML inference
             // How do you use SVM in time-series data?
             if(svm != null){
-                svm.scale(appFolderPath + predict_data , appFolderPath + predict_scaled_data);
-                svm.predict(appFolderPath + predict_scaled_data + " " + appFolderPath + model_name + " " + appFolderPath + result_name);
-                String temp = "";
-                try{
-                    BufferedReader br = new BufferedReader(new FileReader(appFolderPath + result_name));
-                    temp = br.readLine();
-                }catch (IOException e){
-                    e.printStackTrace();
-                }
-                if(temp != null) {
-                    cur_fragment.updateMLInference(Integer.parseInt(temp));
+                File svm_model = new File(appFolderPath + model_name);
+                if(svm_model.exists()) {
+                    svm.scale(appFolderPath + predict_data, appFolderPath + predict_scaled_data);
+                    svm.predict(appFolderPath + predict_scaled_data + " " + appFolderPath + model_name + " " + appFolderPath + result_name);
+                    String temp = "";
+                    try {
+                        BufferedReader br = new BufferedReader(new FileReader(appFolderPath + result_name));
+                        temp = br.readLine();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    if (temp != null && temp.matches("-?\\d+")) {
+                        cur_fragment.updateMLInference(Integer.parseInt(temp));
+                    }
                 }
             }
 
