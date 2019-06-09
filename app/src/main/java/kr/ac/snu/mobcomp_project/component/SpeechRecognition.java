@@ -18,6 +18,7 @@ import java.util.ArrayList;
 
         private SpeechRecognitionListener listener = null;
         private boolean continueSR = false;
+        public int result;
 
 
         public interface SpeechRecognitionListener {
@@ -82,10 +83,12 @@ import java.util.ArrayList;
                 log1(matches.get(i));
                 log1(String.valueOf(scores[i]));
             }
-            if(listener != null) {
-                listener.onResult(1);
-                fireSRIntent();
-            }
+//            if(listener != null) {
+//                listener.onResult(1);
+//                fireSRIntent();
+//            }
+            this.result = 1;
+            fireSRIntent();
         }
         @Override public void onPartialResults(Bundle partialResults){log1("onPartialResults");}
         @Override public void onEvent(int eventType, Bundle params){log1("onEvent");}
@@ -106,10 +109,12 @@ import java.util.ArrayList;
 
             log1("error " + message);
 
-            if(listener != null) {
-                listener.onResult(0);
-                fireSRIntent();
-            }
+//            if(listener != null) {
+//                listener.onResult(0);
+//                fireSRIntent();
+//            }
+            this.result = 0;
+            fireSRIntent();
         }
 
     }
