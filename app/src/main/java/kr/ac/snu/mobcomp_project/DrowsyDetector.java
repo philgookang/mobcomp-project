@@ -17,34 +17,64 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import org.tensorflow.lite.Interpreter;
 
+import kr.ac.snu.mobcomp_project.component.AccelerometerMonitor;
+import kr.ac.snu.mobcomp_project.component.AccelerometerMonitorConfig;
+import kr.ac.snu.mobcomp_project.component.EyeTracker;
 import kr.ac.snu.mobcomp_project.component.LocationMonitor;
+import kr.ac.snu.mobcomp_project.component.SpeechRecognition;
 import umich.cse.yctung.androidlibsvm.LibSVM;
 
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Random;
 
-import kr.ac.snu.mobcomp_project.component.AccelerometerListener;
 
 public class DrowsyDetector implements Runnable {
-    private int mInterval = 1000;
-    private AccelerometerListener accelerometerListener;
+    private int mInterval = 1000; // milisecond of inference/ data collection interval
+    //Components
+    private AccelerometerMonitor mAccelerometerMonitor;
+    private SpeechRecognition mSpeechRecognition;
     private LocationMonitor locationMonitor;
+    private EyeTracker mEyeTracker;
+    private Calendar curtime;
+    //SVM
+    private LibSVM svm;
+    //UI components
     private Handler mHandler;
     private TabFragment1 cur_fragment;
     private final String TAG = "DrowsyDetector";
-    private LibSVM svm;
+
+    // Path of training data / model / testing data stored
+    String systemPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
+    String appFolderPath = systemPath + "libsvm/";
+    String raw_data = "svm_train.txt";
+    String predict_data = "svm_predict.txt";
+    String scaled_data = "svm_train_scaled.txt";
+    String predict_scaled_data = "svm_predict_scaled.txt";
+    String model_name = "svm_model.mdl";
+    String result_name = "result.txt";
+    //Constants
+    private final int DIM_BATCH_SIZE = 1;
+    private final int SIZE_OF_WINDOW = 50;
+    private final int NUMBER_OF_FEATURES = 6; // accel / grav0,1,2 / lat , long, speed / cur_time
+    private final int NUMBER_OF_CLASSES = 2;
+    // DL I/O
+    private float[][][] raw_input = null;
+    private float[][] labelProbArray = null;
+
+    //SVM I/O
     File savedir;
     BufferedWriter train_writer;
     BufferedWriter predict_writer;
     private int number_of_training_data;
-    public DrowsyDetector(Activity activity, TabFragment1 fragment, Handler mHandler_in,
-                          AccelerometerListener accelerometerListener_in,
-                          LocationMonitor locationMonitor_in) {
+    public DrowsyDetector(Activity activity, TabFragment1 fragment, Handler mHandler_in ) {
         cur_fragment = fragment;
         mHandler = mHandler_in;
-        accelerometerListener = accelerometerListener_in;
-        locationMonitor = locationMonitor_in;
+        locationMonitor = ((MainActivity)activity).mLocationMonitor;
+        mAccelerometerMonitor = ((MainActivity)activity).mAccelerometerMonitor;
+        mEyeTracker = fragment.mEyeTracker;
+        curtime = Calendar.getInstance();
         number_of_training_data = 0;
         try{
             // initialize SVM
@@ -74,14 +104,7 @@ public class DrowsyDetector implements Runnable {
             e.printStackTrace();
         }
     }
-    String systemPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/";
-    String appFolderPath = systemPath + "libsvm/";
-    String raw_data = "svm_train.txt";
-    String predict_data = "svm_predict.txt";
-    String scaled_data = "svm_train_scaled.txt";
-    String predict_scaled_data = "svm_predict_scaled.txt";
-    String model_name = "svm_model.mdl";
-    String result_name = "result.txt";
+
     public void train_svm(){
         if(svm != null){
             svm.scale(appFolderPath + raw_data , appFolderPath + scaled_data);
@@ -190,33 +213,29 @@ public class DrowsyDetector implements Runnable {
                         }
                     }
                 }
-                if (accelerometerListener != null) {
-                    raw_input[i][SIZE_OF_WINDOW - 1][0] = accelerometerListener.mAccel;
+                if (mAccelerometerMonitor != null) {
+                    raw_input[i][SIZE_OF_WINDOW - 1][0] = mAccelerometerMonitor.status;
                 } else {
-                    raw_input[i][SIZE_OF_WINDOW - 1][0] = 0.0f;
+                    raw_input[i][SIZE_OF_WINDOW - 1][0] = AccelerometerMonitorConfig.IS_NOT_DROWSY;
                 }
-                if (accelerometerListener.mGravity != null) {
-                    raw_input[i][SIZE_OF_WINDOW - 1][1] = accelerometerListener.mGravity[0];
-                    raw_input[i][SIZE_OF_WINDOW - 1][2] = accelerometerListener.mGravity[1];
+                if (mSpeechRecognition != null) {
+                    raw_input[i][SIZE_OF_WINDOW - 1][1] = mSpeechRecognition.result;
                 } else {
                     raw_input[i][SIZE_OF_WINDOW - 1][1] = 0.0f;
+                }
+                if(mEyeTracker != null){
+                    raw_input[i][SIZE_OF_WINDOW - 1][2] = mEyeTracker.isEyeClosed? 1 : 0 ;
+                }else{
                     raw_input[i][SIZE_OF_WINDOW - 1][2] = 0.0f;
                 }
-                if(cur_fragment.mEyeTracker != null){
-                    raw_input[i][SIZE_OF_WINDOW - 1][3] = cur_fragment.mEyeTracker.isEyeClosed? 1 : 0 ;
-                }else{
-                    raw_input[i][SIZE_OF_WINDOW - 1][3] = 0.0f;
-                }
                 if (locationMonitor != null) {
-                    raw_input[i][SIZE_OF_WINDOW - 1][4] = (float) locationMonitor.latitude;
-                    raw_input[i][SIZE_OF_WINDOW - 1][5] = (float) locationMonitor.longitude;
-                    raw_input[i][SIZE_OF_WINDOW - 1][6] = (float) locationMonitor.speed;
+                    raw_input[i][SIZE_OF_WINDOW - 1][3] = (float) locationMonitor.latitude;
+                    raw_input[i][SIZE_OF_WINDOW - 1][4] = (float) locationMonitor.longitude;
                 } else {
+                    raw_input[i][SIZE_OF_WINDOW - 1][3] = 0.0f;
                     raw_input[i][SIZE_OF_WINDOW - 1][4] = 0.0f;
-                    raw_input[i][SIZE_OF_WINDOW - 1][5] = 0.0f;
-                    raw_input[i][SIZE_OF_WINDOW - 1][6] = 0.0f;
                 }
-                raw_input[i][SIZE_OF_WINDOW - 1][7] = ((float) ((System.currentTimeMillis()/ 1000) % 86400) );
+                raw_input[i][SIZE_OF_WINDOW - 1][5] = ((float) curtime.get(Calendar.HOUR_OF_DAY));
                 if(number_of_training_data < MAX_TRAINING_DATA) {
                     for (int k = 0; k < NUMBER_OF_FEATURES; k++) {
                         if(raw_input[i][SIZE_OF_WINDOW - 1][k] != 0.0) {
@@ -250,14 +269,6 @@ public class DrowsyDetector implements Runnable {
             e.printStackTrace();
         }
     }
-    //Constants
-    private final int DIM_BATCH_SIZE = 1;
-    private final int SIZE_OF_WINDOW = 20;
-    private final int NUMBER_OF_FEATURES = 8; // accel / grav0,1,2 / lat , long, speed / cur_time
-    private final int NUMBER_OF_CLASSES = 7;
-    // DL I/O
-    private float[][][] raw_input = null;
-    private float[][] labelProbArray = null;
 
 
     // DL classifier loading part

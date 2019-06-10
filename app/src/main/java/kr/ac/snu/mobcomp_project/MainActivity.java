@@ -16,7 +16,10 @@ import android.view.Window;
 import com.google.android.gms.vision.CameraSource;
 
 import kr.ac.snu.mobcomp_project.component.AccelerometerListener;
+import kr.ac.snu.mobcomp_project.component.AccelerometerMonitor;
+import kr.ac.snu.mobcomp_project.component.AccelerometerMonitorCallback;
 import kr.ac.snu.mobcomp_project.component.LocationMonitor;
+import kr.ac.snu.mobcomp_project.component.SpeechRecognition;
 
 public class MainActivity extends AppCompatActivity  {
     private ViewPager vp;
@@ -27,6 +30,8 @@ public class MainActivity extends AppCompatActivity  {
     public CameraSource mCameraSource;
     //Sensor
     public AccelerometerListener mAccelerometerListener;
+    public SpeechRecognition mSpeechRecognition;
+    public AccelerometerMonitor mAccelerometerMonitor;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,8 +41,8 @@ public class MainActivity extends AppCompatActivity  {
         vp.setAdapter(new pagerAdapter( getSupportFragmentManager()));
         vp.setCurrentItem(0);
         // Components
-
-
+        mSpeechRecognition = new SpeechRecognition(this);
+        mAccelerometerMonitor = new AccelerometerMonitor(this, new AccelerometerMonitorCallback());
         // load settings
         loadSetting();
 
@@ -66,12 +71,16 @@ public class MainActivity extends AppCompatActivity  {
     protected void onPause() {
         //mLocationMonitor.onPause();
         super.onPause();
+        mSpeechRecognition.stopRecording();
+        mAccelerometerMonitor.onPause();
     }
 
     @Override
     protected void onResume() {
         //mLocationMonitor.onResume();
         super.onResume();
+        mSpeechRecognition.startRecording();
+        mAccelerometerMonitor.onResume();
     }
 
     private void loadSetting(){

@@ -126,7 +126,7 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback {
 
         // load inference task
         mHandler = new Handler();
-        mRunnable = new DrowsyDetector(getActivity(), this, mHandler, ((MainActivity) getActivity()).mAccelerometerListener, ((MainActivity) getActivity()).mLocationMonitor);
+        mRunnable = new DrowsyDetector(getActivity(), this, mHandler);
         mRunnable.run();
         ((MainActivity) getActivity()).mRunnable = mRunnable;
 /*        try {
