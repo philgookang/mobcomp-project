@@ -67,7 +67,6 @@ public class DrowsyDetector implements Runnable {
     File savedir;
     BufferedWriter train_writer;
     BufferedWriter predict_writer;
-    private int number_of_training_data;
     public DrowsyDetector(Activity activity, TabFragment1 fragment, Handler mHandler_in ) {
         cur_fragment = fragment;
         mHandler = mHandler_in;
@@ -75,7 +74,6 @@ public class DrowsyDetector implements Runnable {
         mAccelerometerMonitor = ((MainActivity)activity).mAccelerometerMonitor;
         mEyeTracker = fragment.mEyeTracker;
         curtime = Calendar.getInstance();
-        number_of_training_data = 0;
         try{
             // initialize SVM
             svm = new LibSVM();
@@ -169,7 +167,6 @@ public class DrowsyDetector implements Runnable {
             mHandler.postDelayed(this,mInterval);
         }
     }
-    private final int MAX_TRAINING_DATA = 1000;
     private void DLinputUpdate(){
         try {
             //Clear svm_predict.txt
@@ -193,7 +190,6 @@ public class DrowsyDetector implements Runnable {
             // Collect data from sensor managers and write to svm train and predict
             String temp = "";
             for (int i = 0; i < DIM_BATCH_SIZE; i++) {
-                if(number_of_training_data < MAX_TRAINING_DATA) {
                     int label;
                     if(cur_fragment.drowsiness){
                         label = 1;
@@ -203,11 +199,10 @@ public class DrowsyDetector implements Runnable {
                     }
                     train_writer.append(Integer.toString(label) + " ");
                     temp = temp + Integer.toString(label) + " ";
-                }
                 for (int j = 0; j < SIZE_OF_WINDOW - 1; j++) {
                     for (int k = 0; k < NUMBER_OF_FEATURES; k++) {
                         raw_input[i][j][k] = raw_input[i][j + 1][k];
-                        if(number_of_training_data < MAX_TRAINING_DATA && raw_input[i][j][k] != 0.0) {
+                        if(raw_input[i][j][k] != 0.0) {
                             train_writer.append(Integer.toString(j * NUMBER_OF_FEATURES + k) + ":" + Float.toString(raw_input[i][j][k]) + " ");
                             temp = temp + Integer.toString(j * NUMBER_OF_FEATURES + k) + ":" + Float.toString(raw_input[i][j][k]) + " ";
                         }
@@ -236,19 +231,18 @@ public class DrowsyDetector implements Runnable {
                     raw_input[i][SIZE_OF_WINDOW - 1][4] = 0.0f;
                 }
                 raw_input[i][SIZE_OF_WINDOW - 1][5] = ((float) curtime.get(Calendar.HOUR_OF_DAY));
-                if(number_of_training_data < MAX_TRAINING_DATA) {
+
                     for (int k = 0; k < NUMBER_OF_FEATURES; k++) {
                         if(raw_input[i][SIZE_OF_WINDOW - 1][k] != 0.0) {
                             train_writer.append(Integer.toString((SIZE_OF_WINDOW - 1) * NUMBER_OF_FEATURES + k) + ":" + Float.toString(raw_input[i][SIZE_OF_WINDOW - 1][k]) + " ");
                             temp = temp + Integer.toString((SIZE_OF_WINDOW - 1) * NUMBER_OF_FEATURES + k) + ":" + Float.toString(raw_input[i][SIZE_OF_WINDOW - 1][k]) + " ";
                         }
                     }
-                }
-                if(number_of_training_data < MAX_TRAINING_DATA) {
+
+
                     train_writer.newLine();
                     temp = temp +"\n";
-                }
-                number_of_training_data++;
+
             }
             predict_writer.write(temp,0,temp.length());
             predict_writer.flush();
