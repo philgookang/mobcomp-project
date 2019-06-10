@@ -6,6 +6,8 @@ import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 
+import org.tensorflow.lite.Interpreter;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -15,7 +17,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import org.tensorflow.lite.Interpreter;
+import java.util.Arrays;
+import java.util.Calendar;
 
 import kr.ac.snu.mobcomp_project.component.AccelerometerMonitor;
 import kr.ac.snu.mobcomp_project.component.AccelerometerMonitorConfig;
@@ -23,11 +26,6 @@ import kr.ac.snu.mobcomp_project.component.EyeTracker;
 import kr.ac.snu.mobcomp_project.component.LocationMonitor;
 import kr.ac.snu.mobcomp_project.component.SpeechRecognition;
 import umich.cse.yctung.androidlibsvm.LibSVM;
-
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Random;
 
 
 public class DrowsyDetector implements Runnable {
