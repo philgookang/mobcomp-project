@@ -7,6 +7,11 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import static android.content.Context.SENSOR_SERVICE;
 
 public class AccelerometerMonitor implements SensorEventListener {
@@ -20,6 +25,10 @@ public class AccelerometerMonitor implements SensorEventListener {
     private float mAccel;
     private float mAccelCurrent;
     private float mAccelLast;
+
+    public Integer status = AccelerometerMonitorConfig.IS_NOT_DROWSY;
+
+    private List<Float> mWindow = new ArrayList<Float>();
 
     public AccelerometerMonitor(Activity _mActivity, AccelerometerMonitorCallback _mAccelerometerMonitorCallback) {
 
@@ -63,17 +72,53 @@ public class AccelerometerMonitor implements SensorEventListener {
             float delta = mAccelCurrent - mAccelLast;
             mAccel = mAccel * 0.9f + delta;
 
-            // Make this higher or lower according to how much motion you want to detect
-            if(mAccel > 3){
-                mAccelerometerMonitorCallback.callback(AccelerometerMonitorConfig.MOTION_MOVE);
-            } else {
-                mAccelerometerMonitorCallback.callback(AccelerometerMonitorConfig.MOTION_STOP);
+            // save data to window
+            if (mWindow.size() >= AccelerometerMonitorConfig.WINDOW_SIZE) {
+
+                // remove first level
+                mWindow.remove(0);
             }
+
+            // add new val into window
+            mWindow.add(mAccel);
+
+            // detect changes
+            detect();
         }
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+    public void detect() {
+
+        Float min = null;
+        Float max = null;
+
+        for (Float f : mWindow) {
+            if (max == null) {
+                max = f;
+                min = f;
+                continue;
+            }
+
+            if (max < f) {
+                max = f;
+            }
+
+            if (min > f) {
+                min = f;
+            }
+        }
+
+        Float diff = max - min;
+
+        if (diff >= 30) {
+            status = AccelerometerMonitorConfig.IS_DROWSY;
+        } else {
+            status = AccelerometerMonitorConfig.IS_NOT_DROWSY;
+        }
     }
 }

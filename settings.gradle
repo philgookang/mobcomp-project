@@ -1,1 +1,1 @@
-include ':app'
+include ':app', ':tensorflow-lite-0.0.0-nightly', ':androidlibsvm-release'
