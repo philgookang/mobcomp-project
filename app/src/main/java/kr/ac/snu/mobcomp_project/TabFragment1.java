@@ -99,11 +99,19 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback {
     public void updateDLInference(float[] lableProbArray, int length) {
         TextView txtinf = (TextView) layout.findViewById(R.id.Inference);
         if (txtinf != null) {
+            if(lableProbArray[0] < lableProbArray[1]){
+                txtinf.setText(String.format("DL | Drowsy "));
+            }
+            else{
+                txtinf.setText(String.format("DL | Awake "));
+            }
+            /*
             String temp = "";
             for (int i = 0; i < length; i++) {
                 temp = String.format("%s%.2f, ", temp, lableProbArray[i]);
             }
             txtinf.setText(String.format("DL | %s ", temp));
+            */
         } else {
             System.out.println("Cannot find txtinf");
         }
@@ -112,7 +120,11 @@ public class TabFragment1 extends Fragment implements SurfaceHolder.Callback {
     public void updateMLInference(int output) {
         TextView txtinf = (TextView) layout.findViewById(R.id.svm);
         if (txtinf != null) {
-            txtinf.setText(String.format("ML | %d ", output));
+            if(output == 0)
+            txtinf.setText(String.format("ML | Awake "));
+            else
+            txtinf.setText(String.format("ML | Drowsy "));
+
         } else {
             System.out.println("Cannot find txtsvm");
         }
