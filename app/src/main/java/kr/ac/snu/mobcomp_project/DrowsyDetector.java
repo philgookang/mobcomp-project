@@ -71,6 +71,7 @@ public class DrowsyDetector implements Runnable {
         locationMonitor = ((MainActivity)activity).mLocationMonitor;
         mAccelerometerMonitor = ((MainActivity)activity).mAccelerometerMonitor;
         mEyeTracker = fragment.mEyeTracker;
+        mSpeechRecognition = ((MainActivity)activity).mSpeechRecognition;
         curtime = Calendar.getInstance();
         try{
             // initialize SVM
@@ -213,6 +214,10 @@ public class DrowsyDetector implements Runnable {
                 }
                 if (mSpeechRecognition != null) {
                     raw_input[i][SIZE_OF_WINDOW - 1][1] = mSpeechRecognition.result;
+                    //Log.d(TAG, Integer.toString(mSpeechRecognition.result));
+                    /*if(mSpeechRecognition.result == 0){
+                        Log.d(TAG, "I Can Hear You");
+                    }*/
                 } else {
                     raw_input[i][SIZE_OF_WINDOW - 1][1] = 0.0f;
                 }

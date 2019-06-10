@@ -87,6 +87,9 @@ import java.util.ArrayList;
 //                listener.onResult(1);
 //                fireSRIntent();
 //            }
+            if(this.result == 1){
+                Log.d("moo2", "HII");
+            }
             this.result = 1;
             fireSRIntent();
         }
