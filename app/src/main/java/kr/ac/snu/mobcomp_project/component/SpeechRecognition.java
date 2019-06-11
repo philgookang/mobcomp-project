@@ -19,6 +19,7 @@ import java.util.ArrayList;
         private SpeechRecognitionListener listener = null;
         private boolean continueSR = false;
         public int result;
+        private Activity act;
 
 
         public interface SpeechRecognitionListener {
@@ -32,7 +33,7 @@ import java.util.ArrayList;
         SpeechRecognizer sr = null;
 
         public SpeechRecognition(Activity act) {
-
+            this.act = act;
             if(ContextCompat.checkSelfPermission(act, Manifest.permission.RECORD_AUDIO)
                     != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(act,
@@ -45,8 +46,14 @@ import java.util.ArrayList;
             }
         }
 
-        private void fireSRIntent() {
-            if((sr != null) && continueSR) {
+        private void fireSRIntent(int code) {
+            if(code == 0) {
+                sr.destroy();
+                sr = SpeechRecognizer.createSpeechRecognizer(this.act);
+                sr.setRecognitionListener(this);
+            }
+            if ((sr != null) && continueSR) {
+                log1("fire intent");
                 Intent srIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
 
                 srIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
@@ -59,7 +66,7 @@ import java.util.ArrayList;
 
         public void startRecording() {
             continueSR = true;
-            fireSRIntent();
+            fireSRIntent(1);
         }
 
         public void stopRecording() {
@@ -91,7 +98,7 @@ import java.util.ArrayList;
                 Log.d("moo2", "HII");
             }
             this.result = 1;
-            fireSRIntent();
+            fireSRIntent(1);
         }
         @Override public void onPartialResults(Bundle partialResults){log1("onPartialResults");}
         @Override public void onEvent(int eventType, Bundle params){log1("onEvent");}
@@ -116,8 +123,9 @@ import java.util.ArrayList;
 //                listener.onResult(0);
 //                fireSRIntent();
 //            }
+            int code = message == "speech timeout"? 0:1;
             this.result = 0;
-            fireSRIntent();
+            fireSRIntent(code);
         }
 
     }
